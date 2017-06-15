@@ -53,7 +53,12 @@ In this repo there is includd a `main.vcl` which we will upload to our service. 
 1. There is a clearly defined space in `vcl_recv` where we will be doing our custom VCL for this workshop.
 2. Immediately below you will see `return(pass)`. For the purposes of this workshop we are passing all traffic to the backend so that we can see immediate responses (and not cached responses)
 
-### Step 2: Create dynamic server pool
+In order to upload VCL we must URL encode the file so that we can send it via Curl:
+
+`curl -vs -H "Fastly-Key: api_key" -X POST -H "Content-Type: application/x-www-form-urlencoded" --data "name=main&main=true" --data-urlencode "content@main.vcl" https://api.fastly.com//service/service_id/version/2/vcl`
+
+
+### Step 3: Create dynamic server pool
 
 Next, we will need to create a Dynamic Server Pool to add our servers to (*note we are now working with version 2*):
 
@@ -61,7 +66,7 @@ Next, we will need to create a Dynamic Server Pool to add our servers to (*note 
 
 **Grab the pool ID in the response as we will be using this in the next step**
 
-### Step 3: Add servers to the pool
+### Step 4: Add servers to the pool
 
 We can now begin to start adding servers to the pool (use the IPs listed above to add the servers)
 
@@ -70,13 +75,13 @@ We can now begin to start adding servers to the pool (use the IPs listed above t
 `curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/pool/pool_id/server -d 'address=X.X.X.X'`
 
 
-### Step 4: Activate our new version
+### Step 5: Activate our new version
 
 Our last configuration step. Now we have added our pool (dynamic pools are tied to a version, the dynamic servers in the pool are not):
 
 `curl -vs -H "Fastly-Key: api_key" -X PUT https://api.fastly.com/service/service_id/version/2/activate`
 
-### Step 5: Browse the new load balanced pool
+### Step 6: Browse the new load balanced pool
 
 Open your browser and navigate to your supplied domain (_\<num>.lbworkshop.tech_)
 
