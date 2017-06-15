@@ -10,7 +10,8 @@ Fastly documentation:
 
 * [API documentation](https://docs.fastly.com/api/)
 * [Dynamic servers documentation](https://docs.fastly.com/guides/dynamic-servers/)
-* [Working with service versions in the API](https://docs.fastly.com/api/config#version)
+* [Working with services](https://docs.fastly.com/api/config#service)
+* [Working with service versions](https://docs.fastly.com/api/config#version)
 * [Conditions documentation](https://docs.fastly.com/guides/conditions/)
 
 ## Load Balancing Origin Information
@@ -24,14 +25,57 @@ For workshops 1 & 3, we will be using two instances in a single load balancing p
 * **GCS** (us-west1): **104.196.253.201**
 * **EC2** (us-east2): **13.58.97.100**
 
+## General Tips
+
+We will be working with an API that returns JSON as its response. 
+
+**Make sure you are taking note of the responses!** We will be working with data from these API responses to complete the different parts of the workshop.
+
+In order to read the JSON in a human friendly way, it is suggested you install some sort of JSON parser.
+
+[JQ](https://stedolan.github.io/jq/) can be used for this purpose. A tutorial for basic usage can be found [here](https://stedolan.github.io/jq/tutorial/).
+
 
 ## Workshop 1: Load Balancing Between Cloud Providers
 
+### Step 1: Cloning a new version
 In order to begin adding Dynamic Server Pools, we will first need to clone your service and create a new pool
 
 In this case we will be cloning version 1 of your service to version 2:
 
 `curl -sv -H "Fastly-Key: api_key" https://api.fastly.com/service/service_id/version/1/clone`
+
+### Step 2: Create dynamic server pool
+
+Next, we will need to create a Dynamic Server Pool to add our servers to (*note we are now working with version 2*):
+
+`curl -sv -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/version/2/pool -d 'name=cloudpool&comment=cloudpool'`
+
+**Grab the pool ID in the response as we will be using this in the next step**
+
+### Step 3: Add servers to the pool
+
+We can now begin to start adding servers to the pool (use the IPs listed above to add the servers)
+
+*You will run this command twice with the different IP addresses:*
+
+`curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/pool/pool_id/server -d 'address=X.X.X.X'`
+
+
+### Step 4: Activate our new version
+
+Our last configuration step. Now we have added our pool (dynamic pools are tied to a version, the dynamic servers in the pool are not):
+
+`curl -vs -H "Fastly-Key: api_key" -X PUT https://api.fastly.com/service/service_id/version/2/activate`
+
+### Step 5: Browse the new load balanced pool
+
+Open your browser and navigate to your supplied domain (_X.lbworkshop.tech_)
+
+You should
+
+
+
 
 
 
