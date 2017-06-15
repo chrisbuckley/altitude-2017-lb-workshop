@@ -74,7 +74,11 @@ Open your browser and navigate to your supplied domain (_X.lbworkshop.tech_)
 
 You should now be able to see something like this:
 
+EC2 serving the request:
+
 ![EC2](https://github.com/chrisbuckley/altitude-2017-lb-workshop/raw/master/images/ec2.png "EC2 instance serving the request")
+
+GCS serving the request:
 
 ![GCS](https://github.com/chrisbuckley/altitude-2017-lb-workshop/raw/master/images/gcs.png "GCS instance serving the request")
 
