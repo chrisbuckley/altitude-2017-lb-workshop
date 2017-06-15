@@ -1,5 +1,5 @@
   # APAC, Asia, and US West all go to US West backend.
-  if (server.region == "US-West" || server.region == "APAC" || server.region == "Asia" ) {
+  if (server.region ~ "^(US-West|APAC|Asia)") {
     set req.backend = west;
   # All other regions default to US East
   } else {

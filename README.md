@@ -26,6 +26,10 @@ For workshops 1 & 3, we will be using two instances in a single load balancing p
 * **GCS** (us-west1): **104.196.253.201**
 * **EC2** (us-east2): **13.58.97.100**
 
+In workshop 2, we will be using a Wordpress blog as an example of SOA / Microservice routing. The blog is listed below:
+
+`https://altitude2017blog.wordpress.com/`
+
 ## General Tips
 
 We will be working with an API that returns JSON as its response. 
@@ -58,7 +62,7 @@ In order to upload VCL we must URL encode the file so that we can send it via Cu
 `curl -vs -H "Fastly-Key: api_key" -X POST -H "Content-Type: application/x-www-form-urlencoded" --data "name=main&main=true" --data-urlencode "content@main.vcl" https://api.fastly.com//service/service_id/version/2/vcl`
 
 
-### Step 3: Create dynamic server pool
+### Step 3: Create Dynamic Server Pool
 
 Next, we will need to create a Dynamic Server Pool to add our servers to (*note we are now working with version 2*):
 
@@ -88,17 +92,36 @@ You should now be able to see something like this:
 
 GCS serving the request:
 
-<dl>
- <img src="https://github.com/chrisbuckley/altitude-2017-lb-workshop/raw/master/images/gcs.png" border="1" />
-</dl>
+![GCS](https://github.com/chrisbuckley/altitude-2017-lb-workshop/raw/master/images/gcs.png "GCS instance serving the request")
 
 EC2 serving the request:
 
-<dl>
-<img src="https://github.com/chrisbuckley/altitude-2017-lb-workshop/raw/master/images/ec2.png" border="1" />
+![EC2](https://github.com/chrisbuckley/altitude-2017-lb-workshop/raw/master/images/ec2.png "EC2 instance serving the request")
 
 Keep refreshing and you will see both instances displaying at one time or another. This have been configure with defaults, so request are _random_ to each origin server.
 
 ## Workshop 2: SOA / Microservice Routing
+
+In this next exercise we will create a pool for hosting our Wordpress blog.
+
+For this, we will create a Dynamic Server Pool with our origin being a TLS endpoint. This will require some further configuration of the origin.
+
+### Step 1: Create Dynamic Server Pool
+
+First we will clone our active service to a new one (this time cloning version 2 to version 3):
+
+`curl -sv -H "Fastly-Key: api_key" https://api.fastly.com/service/service_id/version/2/clone`
+
+Now let's create our Server Pool (notice in the data we are sending regarding TLS:
+
+`curl -sv -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/version/2/pool -d 'name=wordpress&comment=wordpress&use_tls=1'`
+
+Lastly, let's activate the new version (ensuring we're activating our new version 3):
+
+`curl -vs -H "Fastly-Key: api_key" -X PUT https://api.fastly.com/service/service_id/version/3/activate`
+
+### Step 2: Add service w/ a TLS endpoint
+
+curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/pool/pool_id/server -d 'address=altitude2017blog.wordpress.com&comment=wp'
 
 
