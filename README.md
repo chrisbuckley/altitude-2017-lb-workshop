@@ -4,7 +4,7 @@ Below you will find resources required for the workshop on Load Balancing at Fas
 
 Clone this repo and refer to the sheet given to you at the workshop which contains your specific Fastly Service ID, and the domain attached to your specific service.
 
-## Prerequisite Reading
+## Suggested Reading
 
 Fastly documentation:
 
@@ -13,8 +13,9 @@ Fastly documentation:
 * [Working with services](https://docs.fastly.com/api/config#service)
 * [Working with service versions](https://docs.fastly.com/api/config#version)
 * [Conditions documentation](https://docs.fastly.com/guides/conditions/)
+* [GeoIP related features](https://docs.fastly.com/guides/vcl/geoip-related-vcl-features)
 
-## Load Balancing Origin Information
+## Load Balancing Information
 
 For all workshops, we will be working directly with the Fastly API. You can use the following API key in your workshops:
 
@@ -45,6 +46,13 @@ In this case we will be cloning version 1 of your service to version 2:
 
 `curl -sv -H "Fastly-Key: api_key" https://api.fastly.com/service/service_id/version/1/clone`
 
+### Step 2: Upload boilerplate VCL for service
+
+In this repo there is includd a `main.vcl` which we will upload to our service. Two things to note:
+
+1. There is a clearly defined space in `vcl_recv` where we will be doing our custom VCL for this workshop.
+2. Immediately below you will see `return(pass)`. For the purposes of this workshop we are passing all traffic to the backend so that we can see immediate responses (and not cached responses)
+
 ### Step 2: Create dynamic server pool
 
 Next, we will need to create a Dynamic Server Pool to add our servers to (*note we are now working with version 2*):
@@ -70,26 +78,20 @@ Our last configuration step. Now we have added our pool (dynamic pools are tied 
 
 ### Step 5: Browse the new load balanced pool
 
-Open your browser and navigate to your supplied domain (_X.lbworkshop.tech_)
+Open your browser and navigate to your supplied domain (_\<num>.lbworkshop.tech_)
 
 You should now be able to see something like this:
-
-EC2 serving the request:
-
-![EC2](https://github.com/chrisbuckley/altitude-2017-lb-workshop/raw/master/images/ec2.png "EC2 instance serving the request")
 
 GCS serving the request:
 
 ![GCS](https://github.com/chrisbuckley/altitude-2017-lb-workshop/raw/master/images/gcs.png "GCS instance serving the request")
 
+EC2 serving the request:
 
+![EC2](https://github.com/chrisbuckley/altitude-2017-lb-workshop/raw/master/images/ec2.png "EC2 instance serving the request")
 
+Keep refreshing and you will see both instances displaying at one time or another. This have been configure with defaults, so request are _random_ to each origin server.
 
-
-
-
-
-
-## Workshop 2: 
+## Workshop 2: SOA / Microservice Routing
 
 
