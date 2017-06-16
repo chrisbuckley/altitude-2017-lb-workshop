@@ -20,14 +20,12 @@ sub vcl_recv {
   # END LB WORKSHOP
   ###########################################
 
-  # PASSING ALL TRAFFIC SO WE CAN SEE THE WORKSHOP IN ACTION
-  return(pass);
-
   if (req.request != "HEAD" && req.request != "GET" && req.request != "FASTLYPURGE") {
     return(pass);
   }
 
-  return(lookup);
+  # PASSING ALL TRAFFIC SO WE CAN SEE THE WORKSHOP IN ACTION
+  return(pass);
 }
 
 sub vcl_fetch {
