@@ -114,7 +114,7 @@ First we will clone our active service to a new one (this time cloning version 2
 
 Now let's create our Server Pool (notice in the data we are sending regarding TLS:
 
-`curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/version/3/pool -d 'name=wordpress&comment=wordpress&use_tls=1&tls_cert_hostname=altitude2017blog.wordpress.com'`
+`curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/version/3/pool -d 'name=wordpress&comment=wordpress&use_tls=1&tls_cert_hostname=blog_url'`
 
 Lastly, let's activate the new version (ensuring we're activating our new version 3):
 
@@ -126,7 +126,17 @@ We can now add our Wordpress TLS endpoint as a dynamic server / SOA route:
 
 `curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/pool/pool_id/server -d 'address=altitude2017blog.wordpress.com&comment=wp'`
 
-### Step 3: Check our new Blog
+### Step 3: Check out our new blog!
+
+Now we can navigate to our new endpoint and see our blog in all its glory (replace the boilerplate URL with your custom service URL):
+
+`http://X.lbworkshop.tech/blog`
+
+**Bear in mind links in the blog will take you out of your service. This is a POC, not a production ready configuration!**
+
+## Workshop 3: Geographical Routing (with Failover)
+
+Now that we've covered some of the basics of Load Balancing with Fastly, lets take a look at a more interesting scenario: Geo-based routing to the closest origin, with failover to an alternate origin.
 
 
 
