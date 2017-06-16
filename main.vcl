@@ -9,6 +9,8 @@ sub vcl_recv {
   # LB WORKSHOP - DO STUFF HERE
   ###########################################
 
+  # Workshop 1 default backend.
+  set req.backend = cloud;
 
   ###########################################
   # END LB WORKSHOP
