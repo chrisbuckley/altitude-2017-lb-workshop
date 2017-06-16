@@ -14,6 +14,7 @@ Fastly documentation:
 * [Working with service versions](https://docs.fastly.com/api/config#version)
 * [Conditions documentation](https://docs.fastly.com/guides/conditions/)
 * [GeoIP related features](https://docs.fastly.com/guides/vcl/geoip-related-vcl-features)
+* [Creating health checks via the API](https://docs.fastly.com/api/config#healthcheck)
 
 ## Load Balancing Information
 
@@ -34,12 +35,37 @@ In workshop 2, we will be using a Wordpress blog as an example of SOA / Microser
 
 We will be working with an API that returns JSON as its response. 
 
-**Make sure you are taking note of the responses!** We will be working with data from these API responses to complete the different parts of the workshop.
+**Make sure you are taking note of the responses!**
+
+We will be working with data from these API responses to complete the different parts of the workshop.
 
 In order to read the JSON in a human friendly way, it is suggested you install some sort of JSON parser.
 
 [JQ](https://stedolan.github.io/jq/) can be used for this purpose. A tutorial for basic usage can be found [here](https://stedolan.github.io/jq/tutorial/).
 
+**If at any time you get version drift in this workshop, you can find out your current active version and work from that using the following command:**
+
+`curl sv -H "Fastly-Key: api_key" https://api.fastly.com/service/service_id/details | jq`
+
+You will receive a JSON response listing all versions. You will want to find the one where `"active": true`:
+
+```
+    {
+      "testing": false,
+      "locked": true,
+      "number": 10,
+      "active": true,
+      "service_id": "3SewbytL2TOibn8tO3OFrM",
+      "staging": false,
+      "created_at": "2017-06-16T01:07:30+00:00",
+      "deleted_at": null,
+      "comment": "",
+      "updated_at": "2017-06-16T01:14:14+00:00",
+      "deployed": false
+    },
+```
+
+You can then clone from your current active version and work from there.
 
 ## Workshop 1: Load Balancing Between Cloud Providers
 
@@ -98,7 +124,7 @@ EC2 serving the request:
 
 ![EC2](https://github.com/chrisbuckley/altitude-2017-lb-workshop/raw/master/images/ec2.png "EC2 instance serving the request")
 
-Keep refreshing and you will see both instances displaying at one time or another. This have been configure with defaults, so request are _random_ to each origin server.
+Keep refreshing and you will see both instances displaying at one time or another. This pool has been configured with defaults, so requests are _random to each origin server_.
 
 ## Workshop 2: SOA / Microservice Routing
 
@@ -137,6 +163,106 @@ Now we can navigate to our new endpoint and see our blog in all its glory (repla
 ## Workshop 3: Geographical Routing (with Failover)
 
 Now that we've covered some of the basics of Load Balancing with Fastly, lets take a look at a more interesting scenario: Geo-based routing to the closest origin, with failover to an alternate origin.
+
+### Step 1: Create origin health check
+
+As we will be introducing code to fail over to a secondary origin (in the case of the primary origin failing or being unavailable), we will need to add health checks to our service.
+
+We will set a simple check to test the index of the site, with default health check settings.
+
+First, clone our current version (this time to version 4):
+
+`curl -sv -H "Fastly-Key: api_key" https://api.fastly.com/service/service_id/version/3/clone`
+
+We can now add our health check to our new version. As the healtcheck is being done over HTTP/1.1 we will also add a host header in the check:
+
+`curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/version/4/healthcheck -d "name=geo-healthcheck&host=lbworkshop.tech&path=/"`
+
+You should see a response like this:
+
+```
+{
+  "name": "geo-healthcheck",
+  "path": "/",
+  "service_id": "service_id",
+  "version": 4,
+  "threshold": 3,
+  "window": 5,
+  "http_version": "1.1",
+  "timeout": 500,
+  "method": "HEAD",
+  "updated_at": "2017-06-16T19:05:02+00:00",
+  "expected_response": 200,
+  "deleted_at": null,
+  "host": "lbworkshop.tech",
+  "created_at": "2017-06-16T19:05:02+00:00",
+  "comment": "",
+  "check_interval": 5000,
+  "initial": 2
+}
+```
+
+### Step 2: Create geographical Dynamic Server Pools
+
+We've had some practice at this so lets get these pools made. We will call one "west" and one "east". 
+
+We will attach the health check created above to each pool:
+
+`curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/version/4/pool -d 'name=east&comment=east&healthcheck=geo-healthcheck'`
+
+`curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/version/4/pool -d 'name=west&comment=west&healthcheck=geo-healthcheck'`
+
+Next, we'll add our two instances from workshop 1 into separate pools; the GCS instance into west, and the EC2 instance into east (run twice, with the different pool IDs and the instance for each pool:
+
+`curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/pool/pool_id/server -d 'address=13.58.97.100&comment=ec2'`
+
+`curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/pool/pool_id/server -d 'address=13.58.97.100&comment=ec2'`
+
+
+### Step 3: Adding custom VCL for backend/origin selection:
+
+In your repo you will find a file `geo.vcl`. This contains our logic for backend selection based on geography, with failover to the secondary origin in case the specified pool is unavailable (based on our health checks).
+
+Edit your main.vcl file, and replace the following code:
+
+```
+  # Workshop 1 default backend.
+  set req.backend = cloud;
+```
+
+with your new `geo.vcl` code:
+
+```
+  # APAC, Asia, and US West all go to US West backend.
+  if (server.region ~ "^(US-West|APAC|Asia)") {
+    set req.backend = west;
+  # All other regions default to US East
+  } else {
+    set req.backend = east;
+  }
+
+  # West failover to East
+  # from unhealthy backend or from restart becuase of backend status code
+  if(req.backend == west && (!req.backend.healthy || req.restarts > 0)) {
+    set req.backend = east;
+  # East failover to West
+  } else if(req.backend == east && (!req.backend.healthy || req.restarts > 0)) {
+    set req.backend = west;
+  }
+```
+
+You can then upload our main.vcl as an update to our version (we have given the new VCL a new name to distinguish from the old, so that we can this as the new "main":
+
+`curl -vs -H "Fastly-Key: api_key" -X POST -H "Content-Type: application/x-www-form-urlencoded" https://api.fastly.com//service/service_id/version/4/vcl --data "name=main-geo&main=true" --data-urlencode "content@main.vcl"`
+
+Let's activate our new version and see our new Geo Load Balancing in effect:
+
+`curl -vs -H "Fastly-Key: api_key" -X PUT https://api.fastly.com/service/service_id/version/4/activate`
+
+As this workshop is being held in San Francisco, we should be hitting the GCS instance. After I shut down Apache on the GCS `us-west1` instance, we should see failover to our EC2 instance in `us-east2`
+
+
+
 
 
 
