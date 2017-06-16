@@ -23,8 +23,8 @@ For all workshops, we will be working directly with the Fastly API. You can use 
 
 For workshops 1 & 3, we will be using two instances in a single load balancing pool:
 
-* **GCS** (us-west1): **104.196.253.201**
-* **EC2** (us-east2): **13.58.97.100**
+* **GCS** (us-west1): **104.196.253.201** (hostname: alt2017-lb-gcs-us-west1)
+* **EC2** (us-east2): **13.58.97.100** (hostname: alt2017-lb-ec2-us-east2)
 
 In workshop 2, we will be using a Wordpress blog as an example of SOA / Microservice routing. The blog is listed below:
 
@@ -114,7 +114,7 @@ First we will clone our active service to a new one (this time cloning version 2
 
 Now let's create our Server Pool (notice in the data we are sending regarding TLS:
 
-`curl -sv -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/version/2/pool -d 'name=wordpress&comment=wordpress&use_tls=1'`
+`curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/version/3/pool -d 'name=wordpress&comment=wordpress&use_tls=1&tls_cert_hostname=altitude2017blog.wordpress.com'`
 
 Lastly, let's activate the new version (ensuring we're activating our new version 3):
 
@@ -122,6 +122,12 @@ Lastly, let's activate the new version (ensuring we're activating our new versio
 
 ### Step 2: Add service w/ a TLS endpoint
 
-curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/pool/pool_id/server -d 'address=altitude2017blog.wordpress.com&comment=wp'
+We can now add our Wordpress TLS endpoint as a dynamic server / SOA route:
+
+`curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/pool/pool_id/server -d 'address=altitude2017blog.wordpress.com&comment=wp'`
+
+### Step 3: Check our new Blog
+
+
 
 
