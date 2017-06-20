@@ -31,6 +31,17 @@ In workshop 2, we will be using a Wordpress blog as an example of SOA / Microser
 
 `https://altitude2017blog.wordpress.com/`
 
+## Initial Setup
+In order to ease usage of the API, let's set a few environment variables for our API key and your personal service ID.
+
+Grab the API key from the readme above, and your service ID from the sheet given to you at the beginning of this workshop (this is assuming a Bash shell):
+
+```
+export API_KEY=<api_key>
+export SERVICE_ID=<service_id>
+```
+
+
 ## General Tips
 
 We will be working with an API that returns JSON as its response. 
@@ -45,7 +56,7 @@ In order to read the JSON in a human friendly way, it is suggested you install s
 
 **If at any time you get version drift in this workshop, you can find out your current active version and work from that using the following command:**
 
-`curl sv -H "Fastly-Key: api_key" https://api.fastly.com/service/service_id/details | jq`
+`curl sv -H "Fastly-Key: ${API_KEY}" https://api.fastly.com/service/${SERVICE_ID}/details | jq`
 
 You will receive a JSON response listing all versions. You will want to find the one where `"active": true`:
 
@@ -74,7 +85,7 @@ In order to begin adding Dynamic Server Pools, we will first need to clone your 
 
 In this case we will be cloning version 1 of your service to version 2:
 
-`curl -sv -H "Fastly-Key: api_key" https://api.fastly.com/service/service_id/version/1/clone`
+`curl -sv -H "Fastly-Key: ${API_KEY}" https://api.fastly.com/service/${SERVICE_ID}/version/1/clone`
 
 ### Step 2: Upload boilerplate VCL for service
 
@@ -85,14 +96,14 @@ In this repo there is includd a `main.vcl` which we will upload to our service. 
 
 In order to upload VCL we must URL encode the file so that we can send it via Curl:
 
-`curl -vs -H "Fastly-Key: api_key" -X POST -H "Content-Type: application/x-www-form-urlencoded" --data "name=main&main=true" --data-urlencode "content@main.vcl" https://api.fastly.com//service/service_id/version/2/vcl`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST -H "Content-Type: application/x-www-form-urlencoded" --data "name=main&main=true" --data-urlencode "content@main.vcl" https://api.fastly.com//service/${SERVICE_ID}/version/2/vcl`
 
 
 ### Step 3: Create Dynamic Server Pool
 
 Next, we will need to create a Dynamic Server Pool to add our servers to (*note we are now working with version 2*):
 
-`curl -sv -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/version/2/pool -d 'name=cloudpool&comment=cloudpool'`
+`curl -sv -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/2/pool -d 'name=cloudpool&comment=cloudpool'`
 
 **Grab the pool ID in the response as we will be using this in the next step**
 
@@ -100,7 +111,7 @@ Next, we will need to create a Dynamic Server Pool to add our servers to (*note 
 
 Our last configuration step. Now we have added our pool (dynamic pools are tied to a version, the dynamic servers in the pool are not):
 
-`curl -vs -H "Fastly-Key: api_key" -X PUT https://api.fastly.com/service/service_id/version/2/activate`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X PUT https://api.fastly.com/service/${SERVICE_ID}/version/2/activate`
 
 ### Step 5: Add servers to the pool
 
@@ -108,7 +119,7 @@ We can now begin to start adding servers to the pool (use the IPs listed above t
 
 *You will run this command twice with the different IP addresses:*
 
-`curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/pool/pool_id/server -d 'address=X.X.X.X'`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/pool_id/server -d 'address=X.X.X.X'`
 
 ### Step 6: Browse the new load balanced pool
 
@@ -136,21 +147,21 @@ For this, we will create a Dynamic Server Pool with our origin being a TLS endpo
 
 First we will clone our active service to a new one (this time cloning version 2 to version 3):
 
-`curl -sv -H "Fastly-Key: api_key" https://api.fastly.com/service/service_id/version/2/clone`
+`curl -sv -H "Fastly-Key: ${API_KEY}" https://api.fastly.com/service/${SERVICE_ID}/version/2/clone`
 
 Now let's create our Server Pool (notice in the data we are sending regarding TLS:
 
-`curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/version/3/pool -d 'name=wordpress&comment=wordpress&use_tls=1&tls_cert_hostname=blog_url'`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/3/pool -d 'name=wordpress&comment=wordpress&use_tls=1&tls_cert_hostname=blog_url'`
 
 Lastly, let's activate the new version (ensuring we're activating our new version 3):
 
-`curl -vs -H "Fastly-Key: api_key" -X PUT https://api.fastly.com/service/service_id/version/3/activate`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X PUT https://api.fastly.com/service/${SERVICE_ID}/version/3/activate`
 
 ### Step 2: Add service w/ a TLS endpoint
 
 We can now add our Wordpress TLS endpoint as a dynamic server / SOA route:
 
-`curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/pool/pool_id/server -d 'address=altitude2017blog.wordpress.com&comment=wp'`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/pool_id/server -d 'address=altitude2017blog.wordpress.com&comment=wp'`
 
 ### Step 3: Check out our new blog!
 
@@ -172,11 +183,11 @@ We will set a simple check to test the index of the site, with default health ch
 
 First, clone our current version (this time to version 4):
 
-`curl -sv -H "Fastly-Key: api_key" https://api.fastly.com/service/service_id/version/3/clone`
+`curl -sv -H "Fastly-Key: ${API_KEY}" https://api.fastly.com/service/${SERVICE_ID}/version/3/clone`
 
 We can now add our health check to our new version. As the healtcheck is being done over HTTP/1.1 we will also add a host header in the check:
 
-`curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/version/4/healthcheck -d "name=geo-healthcheck&host=lbworkshop.tech&path=/"`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/4/healthcheck -d "name=geo-healthcheck&host=lbworkshop.tech&path=/"`
 
 You should see a response like this:
 
@@ -208,15 +219,15 @@ We've had some practice at this so lets get these pools made. We will call one "
 
 We will attach the health check created above to each pool:
 
-`curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/version/4/pool -d 'name=east&comment=east&healthcheck=geo-healthcheck'`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/4/pool -d 'name=east&comment=east&healthcheck=geo-healthcheck'`
 
-`curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/version/4/pool -d 'name=west&comment=west&healthcheck=geo-healthcheck'`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/4/pool -d 'name=west&comment=west&healthcheck=geo-healthcheck'`
 
 Next, we'll add our two instances from workshop 1 into separate pools; the GCS instance into west, and the EC2 instance into east (run twice, with the different pool IDs and the instance for each pool:
 
-`curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/pool/pool_id/server -d 'address=13.58.97.100&comment=ec2'`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/pool_id/server -d 'address=13.58.97.100&comment=ec2'`
 
-`curl -vs -H "Fastly-Key: api_key" -X POST https://api.fastly.com/service/service_id/pool/pool_id/server -d 'address=13.58.97.100&comment=ec2'`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/pool_id/server -d 'address=13.58.97.100&comment=ec2'`
 
 
 ### Step 3: Adding custom VCL for backend/origin selection:
@@ -253,13 +264,17 @@ with your new `geo.vcl` code:
 
 You can then upload our main.vcl as an update to our version (we have given the new VCL a new name to distinguish from the old, so that we can this as the new "main":
 
-`curl -vs -H "Fastly-Key: api_key" -X POST -H "Content-Type: application/x-www-form-urlencoded" https://api.fastly.com//service/service_id/version/4/vcl --data "name=main-geo&main=true" --data-urlencode "content@main.vcl"`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST -H "Content-Type: application/x-www-form-urlencoded" https://api.fastly.com//service/${SERVICE_ID}/version/4/vcl --data "name=main-geo&main=true" --data-urlencode "content@main.vcl"`
 
 Let's activate our new version and see our new Geo Load Balancing in effect:
 
-`curl -vs -H "Fastly-Key: api_key" -X PUT https://api.fastly.com/service/service_id/version/4/activate`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X PUT https://api.fastly.com/service/${SERVICE_ID}/version/4/activate`
 
 As this workshop is being held in San Francisco, we should be hitting the GCS instance. After I shut down Apache on the GCS `us-west1` instance, we should see failover to our EC2 instance in `us-east2`
+
+## Conclusion
+
+In this workshop
 
 
 
