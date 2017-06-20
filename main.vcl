@@ -10,7 +10,7 @@ sub vcl_recv {
   ###########################################
 
   # Workshop 1 default backend.
-  set req.backend = cloud;
+  set req.backend = cloudpool;
 
 
 

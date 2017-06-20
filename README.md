@@ -61,19 +61,19 @@ In order to read the JSON in a human friendly way, it is suggested you install s
 You will receive a JSON response listing all versions. You will want to find the one where `"active": true`:
 
 ```
-    {
-      "testing": false,
-      "locked": true,
-      "number": 10,
-      "active": true,
-      "service_id": "3SewbytL2TOibn8tO3OFrM",
-      "staging": false,
-      "created_at": "2017-06-16T01:07:30+00:00",
-      "deleted_at": null,
-      "comment": "",
-      "updated_at": "2017-06-16T01:14:14+00:00",
-      "deployed": false
-    },
+{
+  "testing": false,
+  "locked": true,
+  "number": 10,
+  "active": true,
+  "service_id": "1OPpKYvOlWVx37twfGVsq0",
+  "staging": false,
+  "created_at": "2017-06-16T01:07:30+00:00",
+  "deleted_at": null,
+  "comment": "",
+  "updated_at": "2017-06-16T01:14:14+00:00",
+  "deployed": false
+},
 ```
 
 You can then clone from your current active version and work from there.
@@ -85,18 +85,31 @@ In order to begin adding Dynamic Server Pools, we will first need to clone your 
 
 In this case we will be cloning version 1 of your service to version 2:
 
-`curl -sv -H "Fastly-Key: ${API_KEY}" https://api.fastly.com/service/${SERVICE_ID}/version/1/clone`
+`curl -sv -H "Fastly-Key: ${API_KEY}" -X PUT https://api.fastly.com/service/${SERVICE_ID}/version/1/clone`
 
 ### Step 2: Upload boilerplate VCL for service
 
-In this repo there is includd a `main.vcl` which we will upload to our service. Two things to note:
+In this repo there is included a `main.vcl` which we will upload to our service. Two things to note:
 
 1. There is a clearly defined space in `vcl_recv` where we will be doing our custom VCL for this workshop.
-2. Immediately below you will see `return(pass)`. For the purposes of this workshop we are passing all traffic to the backend so that we can see immediate responses (and not cached responses)
+2. Immediately below you will see `return(pass)`. For the purposes of this workshop we are passing all traffic to the backends so that we can see immediate responses (and not cached responses)
 
 In order to upload VCL we must URL encode the file so that we can send it via Curl:
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST -H "Content-Type: application/x-www-form-urlencoded" --data "name=main&main=true" --data-urlencode "content@main.vcl" https://api.fastly.com//service/${SERVICE_ID}/version/2/vcl`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST -H "Content-Type: application/x-www-form-urlencoded" --data "name=main&main=true" --data-urlencode "content@main.vcl" https://api.fastly.com/service/${SERVICE_ID}/version/2/vcl`
+
+```
+{
+  "name": "main",
+  "main": true,
+  "content": "<lots of VCL>,
+  "service_id": "1OPpKYvOlWVx37twfGVsq0",
+  "version": 2,
+  "deleted_at": null,
+  "created_at": "2017-06-20T20:23:52+00:00",
+  "updated_at": "2017-06-20T20:23:52+00:00"
+}
+```
 
 
 ### Step 3: Create Dynamic Server Pool
@@ -105,21 +118,63 @@ Next, we will need to create a Dynamic Server Pool to add our servers to (*note 
 
 `curl -sv -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/2/pool -d 'name=cloudpool&comment=cloudpool'`
 
-**Grab the pool ID in the response as we will be using this in the next step**
+JSON response:
 
-### Step 4: Activate our new version
+```
+{
+  "testing": false,
+  "locked": false,
+  "number": 3,
+  "active": false,
+  "service_id": "1OPpKYvOlWVx37twfGVsq0",
+  "staging": false,
+  "created_at": "2017-06-16T21:10:09+00:00",
+  "deleted_at": null,
+  "comment": "",
+  "updated_at": "2017-06-16T21:10:11+00:00",
+  "deployed": false
+}
+```
 
-Our last configuration step. Now we have added our pool (dynamic pools are tied to a version, the dynamic servers in the pool are not):
+Let’s add the pool ID as an environment variable...
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X PUT https://api.fastly.com/service/${SERVICE_ID}/version/2/activate`
+`export POOL_ID1=<pool_id>`
 
-### Step 5: Add servers to the pool
+### Step 4: Add servers to the pool
 
 We can now begin to start adding servers to the pool (use the IPs listed above to add the servers)
 
 *You will run this command twice with the different IP addresses:*
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/pool_id/server -d 'address=X.X.X.X'`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/${POOL_ID1}/server -d 'address=X.X.X.X'`
+
+JSON response:
+
+```
+{
+  "address": "104.196.253.201",
+  "service_id": "1OPpKYvOlWVx37twfGVsq0",
+  "pool_id": "49Y2yUtPUukwoGu9KDxFM",
+  "deleted_at": null,
+  "port": "80",
+  "max_conn": 0,
+  "created_at": "2017-06-20T20:43:43+00:00",
+  "comment": "",
+  "weight": "100",
+  "updated_at": "2017-06-20T20:43:43+00:00",
+  "id": "1AZgxtTsZb3cMAND2LNZBA"
+}
+```
+
+### Step 5: Activate your new version
+
+Our last configuration step. Now we have added our pool, activate the version.
+
+**Once activated, dynamic servers are not tied to a version and can be added and removed dynamically**:
+
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X PUT https://api.fastly.com/service/${SERVICE_ID}/version/2/activate`
+
+
 
 ### Step 6: Browse the new load balanced pool
 
