@@ -252,7 +252,7 @@ Take note of the new pool ID, we'll use that later:
 
 ### Step 2: Adding conditional routing for blog pool
 
-In your repo you will find a file `wordpress.vcl`. This contains our VCL that will send any requests to our chosen blog endpoint (in this case `/blog`), to our newly created Wordpress load balancer
+In your repo you will find a file `wordpress.vcl`. This contains our VCL that will send any requests to our chosen blog endpoint (in this case `/blog`), to our newly created Wordpress load balancer.
 
 Let's add this to our main VCL underneath our workshop 1 `set req.backend = cloudpool;`. It should look something more like this, and you can upload it to oyur new config:
 
@@ -303,7 +303,7 @@ Let's add this to our main VCL underneath our workshop 1 `set req.backend = clou
   ###########################################
 ```
 
-Let's upload this as `main-blog.vcl` so we can use this backend for our blog:
+Let's upload this as `main-blog` so we can use this new configuration and backend for our blog:
 
 `curl -vs -H "Fastly-Key: ${API_KEY}" -X POST -H "Content-Type: application/x-www-form-urlencoded" --data "name=main-blog&main=true" --data-urlencode "content@main.vcl" https://api.fastly.com/service/${SERVICE_ID}/version/3/vcl | jq`
 
@@ -323,9 +323,9 @@ JSON output:
 ```
 
 
-### Step 3: Add service w/ a TLS endpoint
+### Step 3: Add TLS backend to Server Pool
 
-We can now add our Wordpress TLS endpoint to the blog pool (using our previously added `POOL_ID_BLOG` environment variable:
+We can now add our Wordpress TLS endpoint to the blog pool (using our previously added `POOL_ID_BLOG` environment variable):
 
 `curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/${POOL_ID_BLOG}/server -d "address=${BLOG_URL}&comment=wp&port=443" | jq`
 

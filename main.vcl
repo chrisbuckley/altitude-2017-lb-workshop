@@ -12,7 +12,7 @@ sub vcl_recv {
   # Workshop 1 default backend.
   set req.backend = cloudpool;
 
-  # Adding condtional routing to our Wordpress service
+  # Adding conditional routing to our Wordpress service
   if (req.url == "/blog") {
     set req.backend = wordpress;
     # We will also need to change the host header and modify the request url
