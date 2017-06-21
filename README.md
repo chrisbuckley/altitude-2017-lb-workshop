@@ -138,7 +138,7 @@ JSON response:
 
 Let’s add the pool ID as an environment variable...
 
-`export POOL_ID1=<pool_id>`
+`export POOL_ID_1=<pool_id>`
 
 ### Step 4: Add servers to the pool
 
@@ -146,7 +146,10 @@ We can now begin to start adding servers to the pool (use the IPs listed above t
 
 *You will run this command twice with the different IP addresses:*
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/${POOL_ID1}/server -d 'address=X.X.X.X' | jq`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/${POOL_ID_1}/server -d 'address=104.196.253.201' | jq`
+
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/${POOL_ID_1}/server -d 'address=13.58.97.100' | jq`
+
 
 JSON response:
 
@@ -200,7 +203,7 @@ For this, we will create a Dynamic Server Pool with our origin being a TLS endpo
 
 First we will clone our active service to a new one (this time cloning version 2 to version 3):
 
-`curl -sv -H "Fastly-Key: ${API_KEY}" https://api.fastly.com/service/${SERVICE_ID}/version/2/clone`
+`curl -sv -H "Fastly-Key: ${API_KEY}" -X PUT https://api.fastly.com/service/${SERVICE_ID}/version/2/clone | jq`
 
 Create new environment variables (using the Wordpress link above):
 
@@ -377,7 +380,7 @@ We will set a simple check to test the index of the site, with default health ch
 
 First, clone our current version (this time to version 4):
 
-`curl -sv -H "Fastly-Key: ${API_KEY}" https://api.fastly.com/service/${SERVICE_ID}/version/3/clone | jq`
+`curl -sv -H "Fastly-Key: ${API_KEY}" -X PUT https://api.fastly.com/service/${SERVICE_ID}/version/3/clone | jq`
 
 We can now add our health check to our new version. As the healtcheck is being done over HTTP/1.1 we will also add a host header in the check:
 
@@ -389,7 +392,7 @@ You should see a response like this:
 {
   "name": "geo-healthcheck",
   "path": "/",
-  "service_id": "service_id",
+  "service_id": "1OPpKYvOlWVx37twfGVsq0",
   "version": 4,
   "threshold": 3,
   "window": 5,
@@ -466,17 +469,17 @@ with your new `geo.vcl` code:
 
 You can then upload our main.vcl as an update to our version (we have given the new VCL a new name to distinguish from the old, so that we can this as the new "main":
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST -H "Content-Type: application/x-www-form-urlencoded" https://api.fastly.com//service/${SERVICE_ID}/version/4/vcl --data "name=main-geo&main=true" --data-urlencode "content@main.vcl"`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST -H "Content-Type: application/x-www-form-urlencoded" https://api.fastly.com//service/${SERVICE_ID}/version/4/vcl --data "name=main-blog-geo&main=true" --data-urlencode "content@main.vcl"`
 
 Let's activate our new version and see our new Geo Load Balancing in effect:
 
 `curl -vs -H "Fastly-Key: ${API_KEY}" -X PUT https://api.fastly.com/service/${SERVICE_ID}/version/4/activate`
 
-As this workshop is being held in San Francisco, we should be hitting the GCS instance. After I shut down Apache on the GCS `us-west1` instance, we should see failover to our EC2 instance in `us-east2`
+As this workshop is being held in San Francisco, we should be hitting the GCS instance. After I shut down Apache on the GCS `us-west1` instance, we should see failover to our EC2 instance in `us-east2`.
 
 ## Conclusion
 
-In this workshop
+In this workshop we've covered several topics, and have worked through creating multiple load balancing server pools for multi-cloud, microsevrices, and geographic routing and failover.
 
 
 

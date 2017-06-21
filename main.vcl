@@ -12,12 +12,6 @@ sub vcl_recv {
   # Workshop 1 default backend.
   set req.backend = cloudpool;
 
-
-
-
-
-
-
   ###########################################
   # END LB WORKSHOP
   ###########################################
@@ -110,6 +104,9 @@ sub vcl_deliver {
       restart;
     }
   }
+
+  # Ensure browsers don't cache
+  set resp.http.Cache-Control = "no-cache, no-store, must-revalidate";
 
 #FASTLY deliver
   return(deliver);
