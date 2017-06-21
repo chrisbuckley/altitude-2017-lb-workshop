@@ -85,7 +85,7 @@ In order to begin adding Dynamic Server Pools, we will first need to clone your 
 
 In this case we will be cloning version 1 of your service to version 2:
 
-`curl -sv -H "Fastly-Key: ${API_KEY}" -X PUT https://api.fastly.com/service/${SERVICE_ID}/version/1/clone`
+`curl -sv -H "Fastly-Key: ${API_KEY}" -X PUT https://api.fastly.com/service/${SERVICE_ID}/version/1/clone | jq`
 
 ### Step 2: Upload boilerplate VCL for service
 
@@ -96,7 +96,7 @@ In this repo there is included a `main.vcl` which we will upload to our service.
 
 In order to upload VCL we must URL encode the file so that we can send it via Curl:
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST -H "Content-Type: application/x-www-form-urlencoded" --data "name=main&main=true" --data-urlencode "content@main.vcl" https://api.fastly.com/service/${SERVICE_ID}/version/2/vcl`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST -H "Content-Type: application/x-www-form-urlencoded" --data "name=main&main=true" --data-urlencode "content@main.vcl" https://api.fastly.com/service/${SERVICE_ID}/version/2/vcl | jq`
 
 ```
 {
@@ -116,7 +116,7 @@ In order to upload VCL we must URL encode the file so that we can send it via Cu
 
 Next, we will need to create a Dynamic Server Pool to add our servers to (*note we are now working with version 2*):
 
-`curl -sv -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/2/pool -d 'name=cloudpool&comment=cloudpool'`
+`curl -sv -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/2/pool -d 'name=cloudpool&comment=cloudpool' | jq`
 
 JSON response:
 
@@ -146,7 +146,7 @@ We can now begin to start adding servers to the pool (use the IPs listed above t
 
 *You will run this command twice with the different IP addresses:*
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/${POOL_ID1}/server -d 'address=X.X.X.X'`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/${POOL_ID1}/server -d 'address=X.X.X.X' | jq`
 
 JSON response:
 
@@ -172,9 +172,7 @@ Our last configuration step. Now we have added our pool, activate the version.
 
 **Once activated, dynamic servers are not tied to a version and can be added and removed dynamically**:
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X PUT https://api.fastly.com/service/${SERVICE_ID}/version/2/activate`
-
-
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X PUT https://api.fastly.com/service/${SERVICE_ID}/version/2/activate | jq`
 
 ### Step 6: Browse the new load balanced pool
 
@@ -204,27 +202,162 @@ First we will clone our active service to a new one (this time cloning version 2
 
 `curl -sv -H "Fastly-Key: ${API_KEY}" https://api.fastly.com/service/${SERVICE_ID}/version/2/clone`
 
+Create new environment variables (using the Wordpress link above):
+
+```
+export BLOG_URL=altitude2017blog.wordpress.com
+```
+
 Now let's create our Server Pool (notice in the data we are sending regarding TLS:
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/3/pool -d 'name=wordpress&comment=wordpress&use_tls=1&tls_cert_hostname=blog_url'`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/3/pool -d "name=wordpress&comment=wordpress&use_tls=1&tls_cert_hostname=${BLOG_URL}" | jq`
+
+JSon output:
+
+```{
+  "name": "wordpress",
+  "comment": "wordpress",
+  "use_tls": 1,
+  "tls_cert_hostname": "altitude2017blog.wordpress.com",
+  "service_id": "1OPpKYvOlWVx37twfGVsq0",
+  "version": "3",
+  "max_tls_version": null,
+  "shield": null,
+  "tls_ca_cert": null,
+  "request_condition": null,
+  "first_byte_timeout": "15000",
+  "tls_ciphers": null,
+  "tls_sni_hostname": null,
+  "updated_at": "2017-06-21T04:47:40+00:00",
+  "id": "5sufVWoTHlOAOYVRm5jg2G",
+  "max_conn_default": "200",
+  "tls_check_cert": 1,
+  "min_tls_version": null,
+  "connect_timeout": "1000",
+  "tls_client_cert": null,
+  "deleted_at": null,
+  "healthcheck": null,
+  "created_at": "2017-06-21T04:47:40+00:00",
+  "between_bytes_timeout": "10000",
+  "tls_client_key": null,
+  "type": "random",
+  "quorum": "75"
+}
+```
+
+Take note of the new pool ID, we'll use that later:
+
+`export POOL_ID_BLOG=5sufVWoTHlOAOYVRm5jg2G`
+
+
+### Step 2: Adding conditional routing for blog pool
+
+In your repo you will find a file `wordpress.vcl`. This contains our VCL that will send any requests to our chosen blog endpoint (in this case `/blog`), to our newly created Wordpress load balancer
+
+Let's add this to our main VCL underneath our workshop 1 `set req.backend = cloudpool;`. It should look something more like this, and you can upload it to oyur new config:
+
+`main.vcl` before:
+
+```
+  ###########################################
+  # LB WORKSHOP - DO STUFF HERE
+  ###########################################
+
+  # Workshop 1 default backend.
+  set req.backend = cloudpool;
+
+  
+
+
+
+
+
+  ###########################################
+  # END LB WORKSHOP
+  ###########################################
+```
+
+`main.vcl` after:
+
+```
+  ###########################################
+  # LB WORKSHOP - DO STUFF HERE
+  ###########################################
+
+  # Workshop 1 default backend.
+  set req.backend = cloudpool;
+
+  # Adding condtional routing to our Wordpress service
+  if (req.url == "/blog") {
+    set req.backend = wordpress;
+    # We will also need to change the host header and modify the request url
+    # so that we hit the right endpoint.
+    set req.http.Host = "altitude2017blog.wordpress.com";
+    # Remove the /blog from the request URL so that we hit the root of the service
+    # using regular expressions
+    set req.url = regsub(req.url, "^/blog", "/");
+  }
+
+  ###########################################
+  # END LB WORKSHOP
+  ###########################################
+```
+
+Let's upload this as `main-blog.vcl` so we can use this backend for our blog:
+
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST -H "Content-Type: application/x-www-form-urlencoded" --data "name=main-blog&main=true" --data-urlencode "content@main.vcl" https://api.fastly.com/service/${SERVICE_ID}/version/3/vcl | jq`
+
+JSON output:
+
+```
+{
+  "name": "main-blog",
+  "main": true,
+  "content": <lots of vcl>,
+  "service_id": "1OPpKYvOlWVx37twfGVsq0",
+  "version": 3,
+  "deleted_at": null,
+  "created_at": "2017-06-21T05:04:54+00:00",
+  "updated_at": "2017-06-21T05:04:54+00:00"
+}
+```
+
+
+### Step 3: Add service w/ a TLS endpoint
+
+We can now add our Wordpress TLS endpoint to the blog pool (using our previously added `POOL_ID_BLOG` environment variable:
+
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/${POOL_ID_BLOG}/server -d "address=${BLOG_URL}&comment=wp&port=443" | jq`
+
+JSON output:
+
+```
+{
+  "address": "altitude2017blog.wordpress.com",
+  "comment": "wp",
+  "service_id": "1OPpKYvOlWVx37twfGVsq0",
+  "pool_id": "5sufVWoTHlOAOYVRm5jg2G",
+  "deleted_at": null,
+  "port": "443",
+  "max_conn": 0,
+  "created_at": "2017-06-21T05:11:18+00:00",
+  "weight": "100",
+  "updated_at": "2017-06-21T05:11:18+00:00",
+  "id": "RzWDZMrMIV1FiHYUY4k5k"
+}
+```
 
 Lastly, let's activate the new version (ensuring we're activating our new version 3):
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X PUT https://api.fastly.com/service/${SERVICE_ID}/version/3/activate`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X PUT https://api.fastly.com/service/${SERVICE_ID}/version/3/activate | jq`
 
-### Step 2: Add service w/ a TLS endpoint
-
-We can now add our Wordpress TLS endpoint as a dynamic server / SOA route:
-
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/pool_id/server -d 'address=altitude2017blog.wordpress.com&comment=wp'`
-
-### Step 3: Check out our new blog!
+### Step 4: Check out your new blog!
 
 Now we can navigate to our new endpoint and see our blog in all its glory (replace the boilerplate URL with your custom service URL):
 
 `http://X.lbworkshop.tech/blog`
 
-**Bear in mind links in the blog will take you out of your service. This is a POC, not a production ready configuration!**
+**Bear in mind links in the blog will take you out of your service. This is a POC at best, not a production ready configuration!**
 
 ## Workshop 3: Geographical Routing (with Failover)
 
