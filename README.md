@@ -122,17 +122,33 @@ JSON response:
 
 ```
 {
-  "testing": false,
-  "locked": false,
-  "number": 3,
-  "active": false,
-  "service_id": "1OPpKYvOlWVx37twfGVsq0",
-  "staging": false,
-  "created_at": "2017-06-16T21:10:09+00:00",
+  "name": "cloudpool",
+  "comment": "cloudpool",
+  "service_id": "5wFmyFopB74kQoYtrxY3tw",
+  "version": "2",
+  "max_tls_version": null,
+  "shield": null,
+  "tls_ca_cert": null,
+  "request_condition": null,
+  "first_byte_timeout": "15000",
+  "tls_ciphers": null,
+  "tls_sni_hostname": null,
+  "updated_at": "2017-06-21T20:37:51+00:00",
+  "id": "3qoucl7vkyLGf2KXmJ1XIK",
+  "max_conn_default": "200",
+  "tls_check_cert": 1,
+  "min_tls_version": null,
+  "connect_timeout": "1000",
+  "tls_client_cert": null,
   "deleted_at": null,
-  "comment": "",
-  "updated_at": "2017-06-16T21:10:11+00:00",
-  "deployed": false
+  "healthcheck": null,
+  "tls_cert_hostname": null,
+  "created_at": "2017-06-21T20:37:51+00:00",
+  "between_bytes_timeout": "10000",
+  "tls_client_key": null,
+  "type": "random",
+  "use_tls": 0,
+  "quorum": "75"
 }
 ```
 
