@@ -29,7 +29,7 @@ For workshops 1 & 3, we will be using two instances in a single load balancing p
 
 In workshop 2, we will be using a Wordpress blog as an example of SOA / Microservice routing. The blog is listed below:
 
-`https://altitude2017blog.wordpress.com/`
+`https://blog.lbworkshop.tech/`
 
 ## Initial Setup
 In order to ease usage of the API, let's set a few environment variables for our API key and your personal service ID.
@@ -205,7 +205,7 @@ First we will clone our active service to a new one (this time cloning version 2
 Create new environment variables (using the Wordpress link above):
 
 ```
-export BLOG_URL=altitude2017blog.wordpress.com
+export BLOG_URL=blog.lbworkshop.tech
 ```
 
 Now let's create our Server Pool (notice in the data we are sending regarding TLS:
@@ -218,7 +218,7 @@ JSon output:
   "name": "wordpress",
   "comment": "wordpress",
   "use_tls": 1,
-  "tls_cert_hostname": "altitude2017blog.wordpress.com",
+  "tls_cert_hostname": "blog.lbworkshop.tech",
   "service_id": "1OPpKYvOlWVx37twfGVsq0",
   "version": "3",
   "max_tls_version": null,
@@ -287,15 +287,21 @@ Let's add this to our main VCL underneath our workshop 1 `set req.backend = clou
   # Workshop 1 default backend.
   set req.backend = cloudpool;
 
-  # Adding condtional routing to our Wordpress service
+  # Adding conditional routing to our Wordpress service
   if (req.url == "/blog") {
     set req.backend = wordpress;
     # We will also need to change the host header and modify the request url
     # so that we hit the right endpoint.
-    set req.http.Host = "altitude2017blog.wordpress.com";
+    set req.http.Host = "blog.lbworkshop.tech";
     # Remove the /blog from the request URL so that we hit the root of the service
     # using regular expressions
     set req.url = regsub(req.url, "^/blog", "/");
+    # Do not cache admin, login, or includes
+    if(req.url ~ "^/wp-(admin|login|includes)") {
+      return(pass);
+    }
+    # We'll cache the rest
+    return(lookup);
   }
 
   ###########################################
@@ -333,7 +339,7 @@ JSON output:
 
 ```
 {
-  "address": "altitude2017blog.wordpress.com",
+  "address": "blog.lbworkshop.tech",
   "comment": "wp",
   "service_id": "1OPpKYvOlWVx37twfGVsq0",
   "pool_id": "5sufVWoTHlOAOYVRm5jg2G",
@@ -371,11 +377,11 @@ We will set a simple check to test the index of the site, with default health ch
 
 First, clone our current version (this time to version 4):
 
-`curl -sv -H "Fastly-Key: ${API_KEY}" https://api.fastly.com/service/${SERVICE_ID}/version/3/clone`
+`curl -sv -H "Fastly-Key: ${API_KEY}" https://api.fastly.com/service/${SERVICE_ID}/version/3/clone | jq`
 
 We can now add our health check to our new version. As the healtcheck is being done over HTTP/1.1 we will also add a host header in the check:
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/4/healthcheck -d "name=geo-healthcheck&host=lbworkshop.tech&path=/"`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/4/healthcheck -d "name=geo-healthcheck&host=lbworkshop.tech&path=/" | jq`
 
 You should see a response like this:
 
@@ -407,15 +413,23 @@ We've had some practice at this so lets get these pools made. We will call one "
 
 We will attach the health check created above to each pool:
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/4/pool -d 'name=east&comment=east&healthcheck=geo-healthcheck'`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/4/pool -d 'name=east&comment=east&healthcheck=geo-healthcheck' | jq`
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/4/pool -d 'name=west&comment=west&healthcheck=geo-healthcheck'`
+Add the pool ID as environment variable:
+
+`export POOL_ID_EAST=<pool_id>`
+
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/4/pool -d 'name=west&comment=west&healthcheck=geo-healthcheck' | jq`
+
+And for west:
+
+`export POOL_ID_WEST=<pool_id>`
 
 Next, we'll add our two instances from workshop 1 into separate pools; the GCS instance into west, and the EC2 instance into east (run twice, with the different pool IDs and the instance for each pool:
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/pool_id/server -d 'address=13.58.97.100&comment=ec2'`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/${POOL_ID_EAST}/server -d 'address=13.58.97.100&comment=ec2' | jq`
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/pool_id/server -d 'address=13.58.97.100&comment=ec2'`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/${POOL_ID_WEST}/server -d 'address=104.196.253.201&comment=gcs' | jq`
 
 
 ### Step 3: Adding custom VCL for backend/origin selection:
@@ -426,7 +440,7 @@ Edit your main.vcl file, and replace the following code:
 
 ```
   # Workshop 1 default backend.
-  set req.backend = cloud;
+  set req.backend = cloudpool;
 ```
 
 with your new `geo.vcl` code:
