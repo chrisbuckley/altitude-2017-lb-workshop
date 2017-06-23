@@ -485,11 +485,11 @@ with your new `geo.vcl` code:
 
 You can then upload our main.vcl as an update to our version (we have given the new VCL a new name to distinguish from the old, so that we can set this as the new "main":
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST -H "Content-Type: application/x-www-form-urlencoded" https://api.fastly.com//service/${SERVICE_ID}/version/4/vcl --data "name=main-blog-geo&main=true" --data-urlencode "content@main.vcl"`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST -H "Content-Type: application/x-www-form-urlencoded" https://api.fastly.com//service/${SERVICE_ID}/version/4/vcl --data "name=main-blog-geo&main=true" --data-urlencode "content@main.vcl" | jq`
 
 Let's activate our new version and see our new Geo Load Balancing in effect:
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X PUT https://api.fastly.com/service/${SERVICE_ID}/version/4/activate`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X PUT https://api.fastly.com/service/${SERVICE_ID}/version/4/activate | jq`
 
 As this workshop is being held in San Francisco, we should be hitting the GCS instance. After I shut down Apache on the GCS `us-west1` instance, we should see failover to our EC2 instance in `us-east2`.
 
