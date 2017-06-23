@@ -398,7 +398,7 @@ First, clone our current version (this time to version 4):
 
 `curl -sv -H "Fastly-Key: ${API_KEY}" -X PUT https://api.fastly.com/service/${SERVICE_ID}/version/3/clone | jq`
 
-We can now add our health check to our new version. As the healtcheck is being done over HTTP/1.1 we will also add a host header in the check:
+We can now add our health check to our new version. As the healthcheck is being done over HTTP/1.1 we will also add a host header in the check:
 
 `curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/4/healthcheck -d "name=geo-healthcheck&host=lbworkshop.tech&path=/" | jq`
 
@@ -434,17 +434,17 @@ We will attach the health check created above to each pool:
 
 `curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/4/pool -d 'name=east&comment=east&healthcheck=geo-healthcheck' | jq`
 
-Add the pool ID as environment variable:
+Add the pool ID as an environment variable:
 
 `export POOL_ID_EAST=<pool_id>`
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/4/pool -d 'name=west&comment=west&healthcheck=geo-healthcheck' | jq`
-
 And for west:
+
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/4/pool -d 'name=west&comment=west&healthcheck=geo-healthcheck' | jq`
 
 `export POOL_ID_WEST=<pool_id>`
 
-Next, we'll add our two instances from workshop 1 into separate pools; the GCS instance into west, and the EC2 instance into east (run twice, with the different pool IDs and the instance for each pool:
+Next, we'll add our two instances from workshop 1 into separate pools; the GCS instance into west, and the EC2 instance into east (run twice, with the different pool IDs and the instance for each pool):
 
 `curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/${POOL_ID_EAST}/server -d 'address=13.58.97.100&comment=ec2' | jq`
 
@@ -474,7 +474,7 @@ with your new `geo.vcl` code:
   }
 
   # West failover to East
-  # from unhealthy backend or from restart becuase of backend status code
+  # from unhealthy backend or from restart because of backend status code
   if(req.backend == west && (!req.backend.healthy || req.restarts > 0)) {
     set req.backend = east;
   # East failover to West
@@ -483,7 +483,7 @@ with your new `geo.vcl` code:
   }
 ```
 
-You can then upload our main.vcl as an update to our version (we have given the new VCL a new name to distinguish from the old, so that we can this as the new "main":
+You can then upload our main.vcl as an update to our version (we have given the new VCL a new name to distinguish from the old, so that we can set this as the new "main":
 
 `curl -vs -H "Fastly-Key: ${API_KEY}" -X POST -H "Content-Type: application/x-www-form-urlencoded" https://api.fastly.com//service/${SERVICE_ID}/version/4/vcl --data "name=main-blog-geo&main=true" --data-urlencode "content@main.vcl"`
 
