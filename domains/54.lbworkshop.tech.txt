@@ -1,0 +1,11 @@
+-----------------------------------------------------------------------------------------
+For the purpose of this workshop, we will be working with custom VCL and the Fastly APIThe API token for use in this workshop will be in the README of the git repository.
+Please clone the following Git repo to participate in this workshop:
+http://bit.ly/lbworkshop
+We will be working with JSON in this workshop, please install the following tool
+to ease reading of JSON responses:
+http://bit.ly/jq-json
+Please use the following data to configure your service for this workshop.
+Service ID: 4p94Sv3p2Jwv4xC5866HuO
+Domain: http://54.lbworkshop.tech
+------------------------------------------------------------------------------------------
