@@ -20,7 +20,7 @@ Fastly documentation:
 
 For all workshops, we will be working directly with the Fastly API. You can use the following API key in your workshops:
 
-* **API Key**: 
+* **API Key**: 40d5c47058cd90a0b78199dcb4a844ec
 
 For workshops 1 & 3, we will be using two instances in a single load balancing pool:
 
