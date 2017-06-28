@@ -56,7 +56,7 @@ In order to read the JSON in a human friendly way, it is suggested you install s
 
 **If at any time you get version drift in this workshop, you can find out your current active version and work from that using the following command:**
 
-`curl sv -H "Fastly-Key: ${API_KEY}" https://api.fastly.com/service/${SERVICE_ID}/details | jq`
+`curl -sv -H "Fastly-Key: ${API_KEY}" https://api.fastly.com/service/${SERVICE_ID}/details | jq`
 
 You will receive a JSON response listing all versions. You will want to find the one where `"active": true`:
 
