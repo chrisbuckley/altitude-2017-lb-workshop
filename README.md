@@ -224,12 +224,12 @@ First we will clone our active service to a new one (this time cloning version 2
 Create new environment variables (using the Wordpress link above):
 
 ```
-export BLOG_URL=blog.lbworkshop.tech
+export BLOG_HOST=blog.lbworkshop.tech
 ```
 
 Now let's create our Server Pool (notice in the data we are sending regarding TLS:
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/3/pool -d "name=wordpress&comment=wordpress&use_tls=1&tls_cert_hostname=${BLOG_URL}" | jq`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/version/3/pool -d "name=wordpress&comment=wordpress&use_tls=1&tls_cert_hostname=${BLOG_HOST}" | jq`
 
 JSon output:
 
@@ -352,7 +352,7 @@ JSON output:
 
 We can now add our Wordpress TLS endpoint to the blog pool (using our previously added `POOL_ID_BLOG` environment variable):
 
-`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/${POOL_ID_BLOG}/server -d "address=${BLOG_URL}&comment=wp&port=443" | jq`
+`curl -vs -H "Fastly-Key: ${API_KEY}" -X POST https://api.fastly.com/service/${SERVICE_ID}/pool/${POOL_ID_BLOG}/server -d "address=${BLOG_HOST}&comment=wp&port=443" | jq`
 
 JSON output:
 
