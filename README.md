@@ -1,6 +1,6 @@
 # Fastly Altitude 2017 Load Balancing Workshop
 
-Below you will find resources required for the workshop on Load Balancing at Fastly's Altitude 2017 in San Francisco. 
+Below you will find resources required for the workshop on Load Balancing at Fastly's Altitude 2017 in San Francisco.
 
 Clone this repo and refer to the sheet given to you at the workshop which contains your specific Fastly Service ID, and the domain attached to your specific service.
 
@@ -17,10 +17,6 @@ Fastly documentation:
 * [Creating health checks via the API](https://docs.fastly.com/api/config#healthcheck)
 
 ## Load Balancing Information
-
-For all workshops, we will be working directly with the Fastly API. You can use the following API key in your workshops:
-
-* **API Key**: 40d5c47058cd90a0b78199dcb4a844ec
 
 For workshops 1 & 3, we will be using two instances in a single load balancing pool:
 
@@ -44,7 +40,7 @@ export SERVICE_ID=<service_id>
 
 ## General Tips
 
-We will be working with an API that returns JSON as its response. 
+We will be working with an API that returns JSON as its response.
 
 **Make sure you are taking note of the responses!**
 
@@ -285,7 +281,7 @@ Let's add this to our main VCL underneath our workshop 1 `set req.backend = clou
   # Workshop 1 default backend.
   set req.backend = cloudpool;
 
-  
+
 
 
 
@@ -428,7 +424,7 @@ You should see a response like this:
 
 ### Step 2: Create geographical Dynamic Server Pools
 
-We've had some practice at this so lets get these pools made. We will call one "west" and one "east". 
+We've had some practice at this so lets get these pools made. We will call one "west" and one "east".
 
 We will attach the health check created above to each pool:
 
